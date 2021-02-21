@@ -1,4 +1,4 @@
-import { diffChildren } from './children';
+import { diffChildren, reorderChildren } from './children';
 import { diffProps, setProperty } from './props';
 import options from '../options';
 import { renderComponent } from './component';
@@ -76,6 +76,12 @@ export function patch(
 		// Once we have successfully rendered the new VNode, copy it's ID over
 		internal._vnodeId = newVNode._vnodeId;
 	} catch (e) {
+		if (e.then) {
+			// If a promise was thrown, reorderChildren in case this component is
+			// being hidden or moved
+			reorderChildren(internal, startDom, parentDom);
+		}
+
 		// @TODO: assign a new VNode ID here? Or NaN?
 		// newVNode._vnodeId = null;
 		options._catchError(e, internal);

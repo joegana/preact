@@ -92,6 +92,9 @@ export function renderComponent(
 		}
 
 		if (c.componentDidMount != null) {
+			// If the component was constructed, queue up componentDidMount so the
+			// first time this internal commits (regardless of suspense or not) it
+			// will be called
 			c._renderCallbacks.push(c.componentDidMount);
 		}
 	} else {
@@ -131,12 +134,6 @@ export function renderComponent(
 
 		if (c.componentWillUpdate != null) {
 			c.componentWillUpdate(newProps, c._nextState, componentContext);
-		}
-
-		if (c.componentDidUpdate != null) {
-			c._renderCallbacks.push(() => {
-				c.componentDidUpdate(oldProps, oldState, snapshot);
-			});
 		}
 	}
 
@@ -179,8 +176,17 @@ export function renderComponent(
 		globalContext = assign(assign({}, globalContext), c.getChildContext());
 	}
 
-	if (!isNew && c.getSnapshotBeforeUpdate != null) {
-		snapshot = c.getSnapshotBeforeUpdate(oldProps, oldState);
+	if (!isNew) {
+		if (c.getSnapshotBeforeUpdate != null) {
+			snapshot = c.getSnapshotBeforeUpdate(oldProps, oldState);
+		}
+
+		// Only schedule componentDidUpdate if the component successfully rendered
+		if (c.componentDidUpdate != null) {
+			c._renderCallbacks.push(() => {
+				c.componentDidUpdate(oldProps, oldState, snapshot);
+			});
+		}
 	}
 
 	let isTopLevelFragment =
